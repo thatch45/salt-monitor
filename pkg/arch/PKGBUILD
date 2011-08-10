@@ -1,0 +1,28 @@
+# Maintainer: Thomas S Hatch <thatch45@gmail.com>
+
+pkgname=salt-monitor
+pkgver=0.8.7
+pkgrel=1
+pkgdesc='A monitoring system that extends the salt core'
+arch=(any)
+url="https://github.com/thatch45/salt"
+license=("APACHE")
+depends=('python2'
+         'salt')
+backup=('etc/salt/monitor')
+makedepends=()
+optdepends=()
+options=()
+source=("https://github.com/downloads/thatch45/salt/$pkgname-$pkgver.tar.gz"
+        "salt-monitor")
+md5sums=('11bc2e9042a5764e029fefbe49dddcc7')
+
+package() {
+  cd $srcdir/$pkgname-$pkgver
+
+  python2 setup.py install --root=$pkgdir/ --optimize=1
+
+  mkdir -p $pkgdir/etc/rc.d/
+  cp $srcdir/pkg/arch/salt-monitor $pkgdir/etc/rc.d/
+  chmod +x $pkgdir/etc/rc.d/*
+}
