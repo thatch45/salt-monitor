@@ -2,6 +2,7 @@
 import threading
 
 import salt.config
+import salt.ext.monitor.loader
 import salt.ext.monitor.parsers
 import salt.log
 import salt.minion
@@ -14,6 +15,7 @@ class Monitor(salt.minion.SMinion):
     '''
     def __init__(self, opts):
         salt.minion.SMinion.__init__(self, opts)
+        self.collectors = salt.ext.monitor.loader.collectors(opts)
         if 'monitor' in self.opts:
             parser = salt.ext.monitor.parsers.get_parser(self)
             self.tasks = parser.parse()

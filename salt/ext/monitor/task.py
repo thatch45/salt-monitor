@@ -3,8 +3,6 @@ import time
 
 import salt.log
 
-ALL_RESULTS_VARIABLE = "task_results"
-
 log = salt.log.getLogger(__name__)
 
 class MonitorTask(object):
@@ -20,19 +18,17 @@ class MonitorTask(object):
     def run(self):
         log.trace('start thread for %s', self.taskid)
         minion = self.context.get('id')
-        returner = self.context.get('returner')
+        collector = self.context.get('collector')
         while True:
             try:
                 exec self.code in self.context
             except Exception, ex:
-                log.error("can't execute %s: %s", self.cmdid, ex, exc_info=ex)
-            if returner:
+                log.error("can't execute %s: %s", self.taskid, ex, exc_info=ex)
+            if collector:
                 jid = datetime.datetime.strftime(
                              datetime.datetime.now(), 'M%Y%m%d%H%M%S%f')
                 try:
-                    returner({'id' : minion,
-                              'jid' : jid,
-                              'return' : self.context[ALL_RESULTS_VARIABLE]})
+                    collector(minion, self.context['cmd'], self.context['result'])
                 except Exception, ex:
                     log.error('monitor error: %s', self.taskid, exc_info=ex)
             if self.scheduler is None:

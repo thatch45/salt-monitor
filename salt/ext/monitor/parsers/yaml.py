@@ -137,12 +137,11 @@ import shlex
 import salt.log
 # notice intra-package references '.'
 from ..cron import CronParser
-from ..task import MonitorTask, ALL_RESULTS_VARIABLE
+from ..task import MonitorTask
 
 log = salt.log.getLogger(__name__)
 
 DEFAULT_INTERVAL_SECONDS = 10
-PRIMARY_RESULT_VARIABLE = "result"
 
 class Parser(object):
     '''
@@ -172,9 +171,9 @@ class Parser(object):
         result = globals().copy()
         result['id'] = monitor.opts.get('id')
         result['functions'] = monitor.functions
-        returner_name  = monitor.opts.get('monitor.returner')
-        if returner_name:
-            result['returner'] = monitor.returners.get(returner_name)
+        name = monitor.opts.get('monitor.collector')
+        if name:
+            result['collector'] = monitor.collectors.get(name)
         return result
 
     def _expand_tasks(self, parsed_yaml):
@@ -204,21 +203,19 @@ class Parser(object):
         Translate one task/response dict into an array of python lines.
         '''
         rawtask = taskdict['run']
+        cmd = self._split_command(rawtask)
         call = self._expand_call(rawtask)
         result = [
 '''
-def _run(cmd, args):
-    global {all_results}
-    log.trace("{taskid}: run: %s %s", cmd, args)
-    ret = functions[cmd](*args)
-    {all_results}.append([[cmd] + args, ret])
+def _run(*args):
+    log.trace("{taskid}: run: %s", ' '.join(args))
+    ret = functions[args[0]](*args[1:])
     log.trace("{taskid}: result: %s", ret)
     return ret
-{all_results} = []
-{primary_result} = {call}
-'''.format(primary_result=PRIMARY_RESULT_VARIABLE,
-           all_results=ALL_RESULTS_VARIABLE,
-           taskid=taskid,
+cmd = {cmd}
+result = {call}
+'''.format(taskid=taskid,
+           cmd=cmd,
            call=call).strip()]
 
         for key, value in taskdict.iteritems():
@@ -229,6 +226,38 @@ def _run(cmd, args):
             elif key.startswith('if '):
                 result += self._expand_conditional(key, value)
         return '\n'.join(result)
+
+    def _split_command(self, line):
+        '''
+        Translate one shell-like command line into a python function call.
+        For example, "test.echo 'the key is $key'"
+            becomes ['test.echo', 'the key is $key']
+        '''
+        if isinstance(line, dict):
+            raise ValueError('cannot use unescaped ":" in salt command line')
+        lexer = shlex.shlex(line)
+        lexer.whitespace_split = True
+        result = [token for token in lexer]
+        if len(result) == 0:
+            raise ValueError('missing salt command, line: ' + line)
+        if result[0] not in self.functions:
+            raise ValueError('no such salt command: ' + result[0])
+        return result
+
+    def _expand_call(self, line):
+        '''
+        Expand a parsed command line into a python function call.
+        For example, "echo 'the key is $key'"
+            becomes "functions['echo']('the key is {}'.format(key))"
+        '''
+        words = self._split_command(line)
+        try:
+            args = [repr(words[0])] + [self._expand_references(word, True) for word in words[1:]]
+        except ValueError, ex:
+            ex.args = (ex.args[0] + ', line: ' + line,)
+            raise
+        result = '_run({})'.format(', '.join(args))
+        return result
 
     def _expand_foreach(self, params, value):
         '''
@@ -249,20 +278,19 @@ def _run(cmd, args):
         elif len(names) == 1:
             # foreach over a list or set
             result += [
-'''if isinstance({primary_result}, set):
-    {primary_result} = sorted({primary_result})
-for {} in {primary_result}:'''.format(*names,
-                                      primary_result=PRIMARY_RESULT_VARIABLE)]
+'''if isinstance(result, set):
+    result = sorted(result)
+for {} in result:'''.format(*names)]
         elif len(names) == 2:
             # foreach over a dict
             result += [
 '''class AttrDict(dict):
     __getattr__ = dict.__getitem__
-if not isinstance({primary_result}, dict):
-    raise ValueError('{primary_result} is not a dict')
-{primary_result} = AttrDict({primary_result})
-for {}, {} in sorted({primary_result}.iteritems()):''' \
-.format(*names, primary_result=PRIMARY_RESULT_VARIABLE)]
+if not isinstance(result, dict):
+    raise ValueError('result is not a dict')
+result = AttrDict(result)
+for {}, {} in sorted(result.iteritems()):''' \
+.format(*names)]
         else:
             raise ValueError('foreach has too many paramters: {}'.format(
                                ', '.join(names)))
@@ -296,7 +324,7 @@ for {}, {} in sorted({primary_result}.iteritems()):''' \
             result.append('    pass')
         return result
 
-    def _expand_references(self, text, expand_to_string=False):
+    def _expand_references(self, text, to_string=False):
         '''
         Expand the $var, ${var}, and ${expression} references in a string.
         The implementation is a little tricky becasue we allow the user
@@ -307,11 +335,10 @@ for {}, {} in sorted({primary_result}.iteritems()):''' \
         refs = []
         if len(text) > 1 and text[0] in '\'"' and text[0] == text[-1]:
             quoted = True
-            is_string = True
             text = text[1:-1]
+            to_string = True
         else:
             quoted = False
-            is_string = expand_to_string
         for matched in self.TOKEN_PATTERN.split(text):
             if len(matched) == 0:
                 pass
@@ -338,38 +365,11 @@ for {}, {} in sorted({primary_result}.iteritems()):''' \
             result = 'str({})'.format(refs[0]) if quoted else refs[0]
         elif len(refs) == 0:
             fmt = fmt.replace('\1', '{').replace('\2', '}')
-            result = repr(fmt) if is_string else fmt
+            result = repr(fmt) if to_string else fmt
         else:
             fmt = fmt.replace('\1', '{{').replace('\2', '}}')
             result = repr(fmt) + '.format(' + ', '.join(refs) + ')' \
-                        if is_string else fmt.format(*refs)
-        return result
-
-    def _expand_call(self, line):
-        '''
-        Translate one shell-like command line into a python function call.
-        For example, "echo 'the key is $key'"
-            becomes "functions['echo']('the key is {}'.format(key))"
-        '''
-        if isinstance(line, dict):
-            raise ValueError('cannot use ":" in salt command line')
-        lexer = shlex.shlex(line)
-        lexer.whitespace_split = True
-        cmd = []
-        is_command_name = True
-        try:
-            for token in lexer:
-                cmd.append(self._expand_references(token, not is_command_name))
-                is_command_name = False
-        except ValueError, ex:
-            ex.args = (ex.args[0] + ', line: ' + line,)
-            raise
-        if len(cmd) == 0:
-            raise ValueError('missing salt command, line: ' + line)
-        cmdname, cmdargs = cmd[0], cmd[1:]
-        if cmdname not in self.functions:
-            raise ValueError('no such function: ' + cmdname)
-        result = '_run({!r}, [{}])'.format(cmdname, ", ".join(cmdargs))
+                        if to_string else fmt.format(*refs)
         return result
 
     def _expand_scheduler(self, taskdict):

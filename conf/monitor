@@ -31,9 +31,9 @@
 #  minute: 0
 #  second: 10
 
-# Where monitor output should be returned to.  If you don't set this value
+# Where monitor output should be collected.  If you don't set this value
 # monitor data is silently discarded.
-#monitor.returner: mongo_return
+#monitor.collector: mongo
 
 # You can override the mongo/redis/etc returner parameters here.
 #mongo.host: salt

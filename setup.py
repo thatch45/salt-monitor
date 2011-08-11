@@ -91,6 +91,7 @@ setup(
           'Topic :: System :: Distributed Computing',
           ],
       packages=['salt.ext.monitor',
+                'salt.ext.monitor.collectors',
                 'salt.ext.monitor.parsers',
                 ],
       scripts=['scripts/salt-monitor'],
