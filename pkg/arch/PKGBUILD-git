@@ -16,7 +16,7 @@ options=()
 source=("salt-monitor")
 md5sums=('c435daa3b553a6425b48a8abed11b863')
 
-_gitroot="git://github.com/thatch45/salt.git"
+_gitroot="git://github.com/thatch45/salt-monitor.git"
 _gitname="monitor"
 
 build() {
