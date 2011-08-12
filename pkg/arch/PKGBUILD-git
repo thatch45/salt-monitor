@@ -44,6 +44,6 @@ package() {
   python2 setup.py install --root=$pkgdir/ --optimize=1
   
   mkdir -p $pkgdir/etc/rc.d/
-  cp $srcdir/pkg/arch/salt-monitor $pkgdir/etc/rc.d/
+  cp $srcdir/salt-monitor $pkgdir/etc/rc.d/
   chmod +x $pkgdir/etc/rc.d/*
 } 
