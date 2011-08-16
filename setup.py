@@ -94,6 +94,7 @@ setup(
                 'salt.ext.monitor.collectors',
                 'salt.ext.monitor.parsers',
                 ],
+      py_modules=['salt.modules.alert'],
       scripts=['scripts/salt-monitor'],
       data_files=[(os.path.join(etc_path, 'salt'),
                     ['conf/monitor']),
