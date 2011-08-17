@@ -29,14 +29,15 @@ class AlertClient(object):
         socket.connect(self.opts['master_uri'])
         return socket
 
-    def alert(self, fun, ret, alert):
+    def alert(self, severity, category, msg):
         '''
         Send an alert message to the alert daemon
         '''
-        payload = {'enc', 'aes'}
-        load = {'alert': alert,
-                'fun': fun,
-                'ret': ret}
-        payload['load'] = self.auth.crypticle.dumps(load)
+        load = {'cmd': '_alert',
+                'severity' : severity,
+                'category' : category,
+                'msg' : msg}
+        payload = {'enc': 'aes',
+                   'load': self.auth.crypticle.dumps(load)}
         self.socket.send_pyobj(payload)
         return self.auth.crypticle.loads(self.socket.recv_pyobj())

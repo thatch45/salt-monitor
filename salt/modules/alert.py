@@ -6,12 +6,19 @@ Examples:
     alert.error   turboencabular.wanshaft '${key} is {value:.1f} mm from failure'
 '''
 
-__opts__ = {}
+import logging
+import salt.ext.monitor.client
+
+log = logging.getLogger(__name__)
 
 def _alert(level, category, msg):
     '''
     Send the alert to the alert service.
     '''
+    __opts__['master_uri'] = 'tcp://{}:{}'.format(__opts__['alert.host'],
+                                                  __opts__['alert.port'])
+    aclient = salt.ext.monitor.client.AlertClient(__opts__)
+    aclient.alert(level, category, msg)
     return [level, category, msg]
 
 def notice(category, msg):
