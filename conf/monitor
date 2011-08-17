@@ -1,6 +1,15 @@
 # This configuration file is used by salt-monitor and is "overlaid" on the
 # configuration in /etc/salt/minion.
 
+##### Primary configuration settings #####
+##########################################
+# Set the location of the salt alert server, if the alert server cannot be
+# resolved, then the monitor will fail to start
+#alert.host: salt
+
+# Set the post used by the master reply and authentication server
+#alert.port: 4507
+
 ######         Logging settings       #####
 ###########################################
 # The location of the monitor log file

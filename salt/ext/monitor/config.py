@@ -22,9 +22,18 @@ def monitor_config(path):
     # Overwrite minion options with monitor defaults
     opts.update({'log_file' : '/var/log/salt/monitor'})
 
+    # Add unset monitor defaults
+    for key, value in [('alert.host', 'salt'),
+                       ('alert.port', 4507)]:
+        if key not in opts:
+            opts[key] = value
+
     # Overlay monitor config on minion config
     salt.config.load_config(opts, path, 'SALT_MONITOR_CONFIG')
     salt.config.prepend_root_dir(opts, ['log_file'])
+
+    # Resolve DNS names to IP addresses
+    opts['alert.host'] = salt.config.dns_check(opts['alert.host'])
 
     return opts
 
