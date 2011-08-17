@@ -23,3 +23,7 @@ install: local
 	 done
 	-yes | pacman -R $(PKGNAME)
 	yes | pacman -U $(PKGNAME)-*
+	for service in salt-master salt-minion; \
+	do \
+	    /etc/rc.d/$$service start; \
+	done
