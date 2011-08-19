@@ -17,9 +17,10 @@ def _alert(level, category, msg):
     '''
     __opts__['master_uri'] = 'tcp://{}:{}'.format(__opts__['alert.host'],
                                                   __opts__['alert.port'])
+    host = __opts__.get('id', 'unknown')
     aclient = salt.ext.monitor.client.AlertClient(__opts__)
-    aclient.alert(level, category, msg)
-    return [level, category, msg]
+    aclient.alert(host, level, category, msg)
+    return [host, level, category, msg]
 
 def notice(category, msg):
     '''
