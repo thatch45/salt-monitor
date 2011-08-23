@@ -45,7 +45,15 @@
 #monitor.collector: mongo
 
 # You can override the mongo/redis/etc returner parameters here.
-#mongo.host: salt
+# The 'mongo.host' property can be a single host name (e.g. 'mymongo'),
+# a host name with a port number (e.g. 'mymongo:27017'), or a list
+# of hosts (with optional ports) that form a mongo replica set
+# (e.g. ['mymongo1', 'mymongo2', 'mymongo3']).  If you include the port
+# number, protect the ':' from YAML parsing by enclosing everything in
+# single quotes, e.g. 'mymongo2:1234'.
+#mongo.host: mymongo
+#mongo.host: [mymongo1,mymongo2]
+#mongo.host: ['mymongo1:1234',mymongo2,'mymongo3:4567']
 #mongo.port: 27017
 #mongo.user: myuser
 #mongo.password: mypassword
