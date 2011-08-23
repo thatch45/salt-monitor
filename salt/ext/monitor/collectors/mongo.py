@@ -23,6 +23,8 @@ def _escape_dot(in_value):
         result = {}
         for key, value in in_value.iteritems():
             result[key.replace('.', '-')] = _escape_dot(value)
+    elif isinstance(in_value, list):
+        result = [_escape_dot(x) for x in in_value]
     else:
         result = in_value
     return result
