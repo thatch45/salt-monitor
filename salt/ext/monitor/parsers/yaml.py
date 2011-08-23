@@ -141,7 +141,7 @@ from ..task import MonitorTask
 
 log = salt.log.getLogger(__name__)
 
-DEFAULT_INTERVAL_SECONDS = 10
+MONITOR_DEFAULT_INTERVAL = {'minute': 10}
 
 class Parser(object):
     '''
@@ -159,7 +159,7 @@ class Parser(object):
     def __init__(self, monitor):
         self.cron_parser      = CronParser()
         self.default_interval = monitor.opts.get('monitor.default_interval',
-                                           {'seconds' : DEFAULT_INTERVAL_SECONDS})
+                                                 MONITOR_DEFAULT_INTERVAL)
         self.functions        = monitor.functions
         self.context          = self._make_context(monitor)
         self.source           = monitor.opts.get('monitor')
@@ -207,6 +207,8 @@ class Parser(object):
         call = self._expand_call(rawtask)
         result = [
 '''
+class AttrDict(dict):
+    __getattr__ = dict.__getitem__
 def _run(*args):
     log.trace("{taskid}: run: %s", ' '.join(args))
     ret = functions[args[0]](*args[1:])
@@ -284,9 +286,7 @@ for {} in result:'''.format(*names)]
         elif len(names) == 2:
             # foreach over a dict
             result += [
-'''class AttrDict(dict):
-    __getattr__ = dict.__getitem__
-if not isinstance(result, dict):
+'''if not isinstance(result, dict):
     raise ValueError('result is not a dict')
 result = AttrDict(result)
 for {}, {} in sorted(result.iteritems()):''' \
