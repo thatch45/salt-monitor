@@ -18,6 +18,15 @@ __opts__ = {
             'mongo.password': '',
            }
 
+def _escape_dot(in_value):
+    if isinstance(in_value, dict):
+        result = {}
+        for key, value in in_value.iteritems():
+            result[key.replace('.', '-')] = _escape_dot(value)
+    else:
+        result = in_value
+    return result
+
 def collector(hostname, cmd, result):
     '''
     Collect data in a mongo database.
@@ -34,12 +43,7 @@ def collector(hostname, cmd, result):
         db.authenticate(user, password)
 
     collection = db[hostname]
-    back = {}
-    if type(result) == type(dict()):
-        for key, value in result.iteritems():
-            back[key.replace('.', '-')] = value
-    else:
-        back = result
+    back = _escape_dot(result)
     log.debug( back )
     collection.insert({
         'utctime' : datetime.datetime.utcnow(),
