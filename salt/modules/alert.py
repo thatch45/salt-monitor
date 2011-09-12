@@ -15,7 +15,7 @@ def _alert(level, category, msg):
     '''
     Send the alert to the alert service.
     '''
-    __opts__['master_uri'] = 'tcp://{}:{}'.format(__opts__['alert.host'],
+    __opts__['master_uri'] = 'tcp://{}:{}'.format(__opts__['alert_master'],
                                                   __opts__['alert.port'])
     host = __opts__.get('id', 'unknown')
     aclient = salt.ext.monitor.client.AlertClient(__opts__)

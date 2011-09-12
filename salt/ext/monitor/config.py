@@ -23,7 +23,7 @@ def monitor_config(path):
     opts.update({'log_file' : '/var/log/salt/monitor'})
 
     # Add unset monitor defaults
-    for key, value in [('alert.host', 'salt'),
+    for key, value in [('alert_master', 'salt'),
                        ('alert.port', 4507)]:
         if key not in opts:
             opts[key] = value
@@ -33,7 +33,7 @@ def monitor_config(path):
     salt.config.prepend_root_dir(opts, ['log_file'])
 
     # Resolve DNS names to IP addresses
-    opts['alert.host'] = salt.config.dns_check(opts['alert.host'])
+    opts['alert_master'] = salt.config.dns_check(opts['alert_master'])
 
     return opts
 
